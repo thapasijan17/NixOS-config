@@ -1,4 +1,4 @@
-# NixOS (hyprdots-nixos)
+# NixOS 
 
 ## Prerequisites
 
