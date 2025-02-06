@@ -20,30 +20,76 @@
     let
       system = "x86_64-linux";
 
-      # defaults
-      defaultUsername = "sijan";
-      defaultGitUser = "thapasijan171";
-      defaultGitEmail = "56615615+thapasijan329@users.noreply.github.com";
+      username = "editme";
+      gitUser = "editme";
+      gitEmail = "editme";
+      host = "editme";
+      defaultPassword = "editme";
 
       pkgs = import nixpkgs {
         inherit system;
         config.allowUnfree = true;
-
-        # allow all unfree packages no matter the license status, this is potentially dangerous and should be used with caution
         config.allowUnfreePredicate = _: true;
       };
 
-      mkSystem =
-        {
-          host,
-          home,
-          username ? defaultUsername,
-          gitUser ? defaultGitUser,
-          gitEmail ? defaultGitEmail,
-        }:
-        nixpkgs.lib.nixosSystem {
-          inherit system;
-          inherit pkgs;
+      mkVM =
+        { nixosSystem, ... }:
+        nixosSystem.extendModules {
+          modules = [
+            (
+              { config, pkgs, ... }:
+              {
+                virtualisation.libvirtd.enable = true;
+                virtualisation.vmVariant = {
+                  virtualisation = {
+                    memorySize = 8192; # 8GB RAM
+                    cores = 4;
+                    qemu = {
+                      options = [
+                        "-vga none"
+                        "-device virtio-gpu-gl-pci"
+                        "-display gtk,gl=on"
+                        "-device virtio-tablet-pci"
+                        "-device virtio-keyboard-pci"
+                        "-display gtk,gl=on,show-cursor=on"
+                      ];
+                    };
+                  };
+                  services.xserver.displayManager.autoLogin = {
+                    enable = true;
+                    user = username;
+                  };
+
+                  services.spice-vdagentd.enable = true;
+                };
+                environment.sessionVariables = {
+                  WLR_NO_HARDWARE_CURSORS = "1";
+                  WLR_RENDERER_ALLOW_SOFTWARE = "1";
+                };
+                users.users.${username} = {
+                  initialPassword = defaultPassword;
+                  extraGroups = [ "libvirtd" ];
+                };
+                environment.systemPackages = with pkgs; [
+                  open-vm-tools
+                  virt-manager
+                  OVMF
+                  qemu
+                  virglrenderer
+                  xorg.xf86inputvmmouse
+                ];
+                virtualisation.libvirtd.qemu.ovmf.enable = true;
+                virtualisation.libvirtd.qemu.runAsRoot = true;
+              }
+            )
+          ];
+        };
+
+    in
+    {
+      nixosConfigurations = {
+        hyprdots-nix = nixpkgs.lib.nixosSystem {
+          inherit system pkgs;
 
           specialArgs = {
             inherit
@@ -53,70 +99,49 @@
               host
               ;
           };
+
           modules = [
-            ./hosts/${host}/configuration.nix
+            ./configuration.nix
             home-manager.nixosModules.home-manager
             {
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
-              home-manager.users.${username} = import ./homes/${home}/home.nix;
+              home-manager.users.${username} = import ./home.nix;
               home-manager.extraSpecialArgs = {
-                inherit
-                  username
-                  gitUser
-                  gitEmail
-                  ;
+                inherit username gitUser gitEmail;
               };
             }
           ];
         };
-      mkHome =
-        {
-          home,
-          username ? defaultUsername,
-          gitUser ? defaultGitUser,
-          gitEmail ? defaultGitEmail,
-        }:
-        home-manager.lib.homeManagerConfiguration {
-          inherit pkgs;
-          modules = [ ./homes/${home}/home.nix ];
-          extraSpecialArgs = {
-            inherit
-              username
-              gitUser
-              gitEmail
-              ;
+
+        hyprdots-nix-vm = mkVM {
+          nixosSystem = nixpkgs.lib.nixosSystem {
+            inherit system pkgs;
+            specialArgs = {
+              inherit
+                username
+                gitUser
+                gitEmail
+                host
+                defaultPassword
+                ;
+            };
+            modules = [
+              ./configuration.nix
+              home-manager.nixosModules.home-manager
+              {
+                home-manager.useGlobalPkgs = true;
+                home-manager.useUserPackages = true;
+                home-manager.users.${username} = import ./home.nix;
+                home-manager.extraSpecialArgs = {
+                  inherit username gitUser gitEmail;
+                };
+              }
+            ];
           };
         };
-    in
-    {
-      nixosConfigurations = {
-        "sijan@cedar" = mkSystem {
-          host = "cedar";
-          home = "sijandots";
-          username = "sijan";
-        };
 
-        # feel free to change the username
-        "someone@hyprdots-host" = mkSystem {
-          host = "hyprdots-host";
-          home = "hyprdots";
-          username = "someone";
-        };
-
-        # feel free to change the username
-        "sijan@hyprdots-host" = mkSystem {
-          host = "hyprdots-host";
-          home = "sijandots";
-          username = "sijan";
-        };
       };
-
-      homeConfigurations = {
-        sijandots = mkHome { home = "sijandots"; };
-        hyprdots = mkHome { home = "hyprdots"; };
-      };
-
-      nixosConfigurations.nixos = self.nixosConfigurations."sijan@cedar";
+      packages.${system}.default = self.nixosConfigurations.hyprdots-nix-vm.config.system.build.vm;
     };
 }
