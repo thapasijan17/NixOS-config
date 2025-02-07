@@ -10,7 +10,7 @@ Clone this repository:
 
 ```bash
 git clone https://github.com/thapasijan17/evo-os.git
-cd hyprdots-nixos
+cd evo-os
 ```
 
 edit flake.nix:
