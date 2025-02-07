@@ -1,61 +1,64 @@
-# Evo-nixos
+# Evo-nix
 
-installation is both available as a nixos host, a vm, home manager module.
+Evo-nix is an experimental nixos configuration. The goal is to have a fully working home-manager module, with an optional nixos host configuration.
 
-## Installation as a NixOS Host / VM
+installation is available as a nixos host and vm.
 
-This process works for both creating a new configuration and setting up Hyprdots.
+## requirements
 
-Clone this repository:
+- nixos install
+  - it may be possible to use nix the package manager on other operating systems. i haven't tried it.
+  
+- git
 
-```bash
-git clone https://github.com/thapasijan17/evo-os.git
-cd evo-os
-```
+## installation as a vm / nixos host
 
-edit flake.nix:
+1. clone this repository:
 
-Replace `<username>`, `<host>`, and github settings with your info.
+   ```bash
+    git clone https://github.com/thapasijan17/evo-os.git
+    cd evo-os
+   ```
 
-```bash
-sudo nixos-generate-config --show-hardware-config > ./hardware-configuration.nix
-```
+2. edit `flake.nix`:
+   - replace `<username>`, `<host>`, and github settings with your info
+   - a default password is given for sudo usage in the vm
+   - feel free to change it with passwd when you login
 
-Build and switch to your new configuration:
+3. generate hardware configuration:
 
-```bash
-sudo nixos-rebuild switch --flake .#nixos
-```
+   ```bash
+   sudo nixos-generate-config --show-hardware-config > ./hardware-configuration.nix
+   ```
 
-`reboot`
+4. build and switch to your new configuration:
 
-## Updating / Building
+   - using a vm (recommended):
+     ```bash
+     nix run .
+     ```
 
-To update your system, pull the latest changes from this repository and rebuild:
+   - or using nixos:
+     ```bash
+     sudo nixos-rebuild switch --flake
+     reboot
+     ```
+
+## updating and development
+
+To update and rebuild the vm (recommended) or host:
 
 ```bash
 git pull
-sudo nixos-rebuild switch --flake .
+nix run .  
 ```
 
-The above will also update home-manager. If you want to update or switch home-manager without updating the system, run `home-manager switch --flake . #or --flake .#<homename>`
+> **note:** any changes require the vm to be rebuilt. run `rm <host>.qcow2` to remove the old one.
 
-## TODO
 
-## Customization
+## troubleshooting
 
-- Add system-wide packages in `configuration.nix`
-- Add user-specific packages in `home.nix`
-- Configure desktop-related settings in `modules/desktop.nix`
-- Configure development-related settings in `modules/development.nix`
-
-## Known Issues
-
-- `swwwallpaper.sh` from hyprdots puts a lockfile in /tmp. if your wallpaper isn't loading chances are there's a lockfile in the way.
-
-## Troubleshooting
-
-If you encounter any issues, please check the NixOS and Home Manager logs:
+if you encounter any issues, please check the nixos and home manager logs:
 
 ```
 journalctl -b
