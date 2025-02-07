@@ -105,8 +105,8 @@
   };
 
   # ===== System Configuration =====
-  time.timeZone = "Asia/Kathmandu";
-  i18n.defaultLocale = "en_US.UTF-8";
+  time.timeZone = "America/Vancouver";
+  i18n.defaultLocale = "en_CA.UTF-8";
 
   # ===== User Configuration =====
   users.users.${username} = {
